@@ -1,4 +1,8 @@
+.DS_Store
 .gradle
 .idea
-.qodana
 build
+.run
+src/main/gen
+idea-flex.skeleton
+jflex-*.jar

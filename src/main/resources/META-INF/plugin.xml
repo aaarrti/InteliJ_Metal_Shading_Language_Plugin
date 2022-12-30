@@ -1,18 +1,28 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.aaarrti.intelijmetalshadinglanguageplugin</id>
-    <name>IntelliJ Platform Plugin InteliJ_Metal_Shading_Language_Plugin</name>
-    <vendor>aaarrti</vendor>
+  <id>com.github.aaarrti.intelijmetalshadinglanguageplugin</id>
+  <name>Metal Shading Language</name>
+  <vendor>aaarrti</vendor>
+  <version>0.0.1</version>
 
-    <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.platform</depends>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.aaarrti.intelijmetalshadinglanguageplugin.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.aaarrti.intelijmetalshadinglanguageplugin.services.MyProjectService"/>
-    </extensions>
-
-    <applicationListeners>
-        <listener class="com.github.aaarrti.intelijmetalshadinglanguageplugin.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
-    </applicationListeners>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType
+            name="Metal"
+            implementationClass="org.intellij.sdk.language.MetalFileType"
+            fieldName="INSTANCE"
+            language="Metal"
+            extensions="metal"/>
+  </extensions>
+  <extensions defaultExtensionNs="com.intellij">
+    <lang.parserDefinition
+            language="Metal"
+            implementationClass="org.intellij.sdk.language.MetalParserDefinition"/>
+  </extensions>
+  <extensions defaultExtensionNs="com.intellij">
+    <lang.syntaxHighlighterFactory
+            language="Metal"
+            implementationClass="org.intellij.sdk.language.MetalSyntaxHighlighterFactory"/>
+  </extensions>
 </idea-plugin>

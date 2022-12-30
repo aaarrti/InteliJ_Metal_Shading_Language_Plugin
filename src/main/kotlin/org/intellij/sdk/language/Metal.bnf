@@ -1,0 +1,107 @@
+{
+  parserClass="org.intellij.sdk.language.parser.MetalParser"
+  parserUtilClass="org.intellij.sdk.language.parser.MetalParserUtil"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Metal"
+  psiImplClassSuffix="Impl"
+  psiPackage="org.intellij.sdk.language.psi"
+  psiImplPackage="org.intellij.sdk.language.psi.impl"
+
+  elementTypeHolderClass="org.intellij.sdk.language.psi.MetalTypes"
+  elementTypeClass="org.intellij.sdk.language.psi.MetalElementType"
+  tokenTypeClass="org.intellij.sdk.language.psi.MetalTokenType"
+}
+
+metalFile ::= segment*
+
+private segment ::=  statement | expression | declaration | COMMENT | CRLF
+
+// Important top level segment
+expression ::= (exit_control_return | exit_control_single | expression_assign) SEMICOLON
+declaration ::= function_definition | variable_definition
+statement ::= statement_if | statement_else | statement_for
+
+
+
+storage_qualifier ::= constant | thread | device
+
+identifier_type ::= void | int | uint | float | double | half | bool | long | bool2 | bool3 | bool4 | char2 | char3 | char4 | short2 | short3 | int2 | int3 | long2 | long3 | long4 | half2 | half3 | half4 | half2x2 | half2x3 | half2x4 | half3x2 | half3x3 | half3x4 | half4x2 | half4x3 | half4x4 |  float2x2 | float2x3 | float2x4 | float3x2 | float3x3 | float3x4 | float4x2 | float4x3 | float4x4
+
+assign_op ::= EQUAL | MUL_ASSIGN | DIV_ASSIGN | ADD_ASSIGN | SUB_ASSIGN | MOD_ASSIGN | LEFT_ASSIGN | RIGHT_ASSIGN | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN
+arithmetic_op ::= PLUS | DASH | STAR | SLASH | PERCENT | LEFT_OP | RIGHT_OP | AMPERSAND | CARET | VERTICAL_BAR
+relational_op ::= EQ_OP | ANGLE_L | ANGLE_R | GE_OP | LE_OP | NE_OP | AND_OP | OR_OP | XOR_OP
+unary_sign_op ::=  PLUS | DASH
+unary_front_op ::= INCREMENT | DECREMENT | EXCLAMATION | unary_sign_op
+unary_back_op ::= INCREMENT | DECREMENT
+
+
+
+// Function definition ------------------------------------------------------------------------
+function_definition ::= identifier_type var_name_origin_func PAREN_L function_args? PAREN_R (C_BRACKET_L segment* C_BRACKET_R)? SEMICOLON? {pin=3}
+function_args ::= identifier_type var_name_origin_variable (COMMA function_args)?
+
+// Definition ------------------------------------------------------------------------
+variable_definition ::= storage_qualifier? identifier_type variable_definition_body (COMMA variable_definition_body)* SEMICOLON {pin=3}
+private variable_definition_body ::= var_name_origin_variable (S_BRACKET_L INTEGER_CONSTANT? S_BRACKET_R)? (EQUAL init_val)?
+init_val ::=  true | false | (unary_sign_op? (FLOAT_CONSTANT | INTEGER_CONSTANT)) | member_access_head | initializer
+initializer ::= identifier_type (S_BRACKET_L INTEGER_CONSTANT? S_BRACKET_R)?
+                PAREN_L expression_no_assign? (COMMA expression_no_assign)* PAREN_R
+
+// Control flow ------------------------------------------------------------------------
+statement_if ::= if PAREN_L expression_no_assign PAREN_R C_BRACKET_L segment* C_BRACKET_R
+statement_else ::= else (statement_if | (C_BRACKET_L segment* C_BRACKET_R))
+statement_for ::= for PAREN_L statement_for_paren PAREN_R C_BRACKET_L segment* C_BRACKET_R
+private statement_for_paren ::= statement_for_var_initialise SEMICOLON statement_for_var_termination SEMICOLON statement_for_var_increment
+private statement_for_var_initialise ::= identifier_type var_name_origin_variable EQUAL unary_sign_op? (INTEGER_CONSTANT | FLOAT_CONSTANT)
+private statement_for_var_termination ::= var_name_access_var relational_op unary_sign_op? (INTEGER_CONSTANT | FLOAT_CONSTANT)
+private statement_for_var_increment ::= var_name_access_var ((INCREMENT | DECREMENT) | ((ADD_ASSIGN | SUB_ASSIGN) unary_sign_op? (INTEGER_CONSTANT | FLOAT_CONSTANT)))
+
+// Control flow keyword ------------------------------------------------------------------------
+exit_control_single ::= break | continue
+exit_control_return ::= return expression_no_assign?
+
+// expression ------------------------------------------------------------
+expression_assign ::= (expression_no_assign | expression_assign_paren | initializer) (assign_op expression_assign)?
+expression_assign_paren ::= PAREN_L expression_assign PAREN_R
+expression_no_assign ::= (expression_unit | expression_no_assign_paren) ((arithmetic_op | relational_op) expression_no_assign)?
+expression_no_assign_paren ::= PAREN_L expression_no_assign PAREN_R
+expression_unit ::= unary_front_op? (FLOAT_CONSTANT | INTEGER_CONSTANT | function_call | member_access_head) unary_back_op?
+function_call ::= var_name_access_func PAREN_L (expression_no_assign (COMMA expression_no_assign)*)? PAREN_R {pin=2}
+member_access_head ::= var_name_access_var member_access_postfix
+member_access ::= var_name_access_member member_access_postfix
+private member_access_postfix ::= member_access_array ? DOT member_access?
+private member_access_array ::= S_BRACKET_L INTEGER_CONSTANT S_BRACKET_R (S_BRACKET_L INTEGER_CONSTANT S_BRACKET_R)?
+
+
+// variable origin for reference ------------------------
+var_name_origin_func ::= IDENTIFIER {
+  mixin="org.intellij.sdk.language.psi.MetalNamedFunctionDeclareImpl"
+  implements="org.intellij.sdk.language.psi.MetalNamedElement"
+  methods=[getName setName getNameIdentifier]
+}
+
+var_name_origin_variable ::= IDENTIFIER {
+    mixin="org.intellij.sdk.language.psi.MetalNamedVariableDeclareImpl"
+    implements="org.intellij.sdk.language.psi.MetalNamedElement"
+    methods=[getName setName getNameIdentifier]
+}
+
+var_name_access_func ::= IDENTIFIER {
+  mixin="org.intellij.sdk.language.psi.MetalNamedVariableFuncAccessImpl"
+  implements="org.intellij.sdk.language.psi.MetalNamedElement"
+  methods=[getName setName getNameIdentifier]
+}
+
+var_name_access_var ::= IDENTIFIER {
+  mixin="org.intellij.sdk.language.psi.MetalNamedVariableAccessImpl"
+  implements="org.intellij.sdk.language.psi.MetalNamedElement"
+  methods=[getName setName getNameIdentifier]
+}
+
+var_name_access_member ::= IDENTIFIER {
+  mixin="org.intellij.sdk.language.psi.MetalNamedVariableAccessMemberImpl"
+  implements="org.intellij.sdk.language.psi.MetalNamedElement"
+  methods=[getName setName getNameIdentifier]
+}
